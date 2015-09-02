@@ -1,4 +1,5 @@
 ﻿using System;
+using Foundatio.Caching;
 using Foundatio.Jobs;
 using Foundatio.Lock;
 using Foundatio.Messaging;
@@ -23,6 +24,7 @@ namespace Samples.Core {
             var metricsClient = new InMemoryMetricsClient();
             metricsClient.StartDisplayingStats();
             container.RegisterSingleton<IMetricsClient>(metricsClient);
+            container.RegisterSingleton<ICacheClient, InMemoryCacheClient>();
 
             container.RegisterSingleton<IQueueBehavior<ValuesPost>>(() => new MetricsQueueBehavior<ValuesPost>(metricsClient));
             container.RegisterSingleton<IQueue<ValuesPost>>(() => new InMemoryQueue<ValuesPost>(behaviours: container.GetAllInstances<IQueueBehavior<ValuesPost>>()));
