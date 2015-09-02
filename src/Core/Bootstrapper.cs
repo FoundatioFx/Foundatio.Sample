@@ -23,12 +23,14 @@ namespace Samples.Core {
             container.RegisterSingleton<IMetricsClient>(metricsClient);
             container.RegisterSingleton<ICacheClient, InMemoryCacheClient>();
 
-            container.RegisterSingleton<IQueue<ValuesPost>>(() => new InMemoryQueue<ValuesPost>());
+            container.RegisterSingleton<IQueueBehavior<ValuesPost>>(() => new MetricsQueueBehavior<ValuesPost>(metricsClient));
+            container.RegisterSingleton<IQueue<ValuesPost>>(() => new InMemoryQueue<ValuesPost>(behaviours: container.GetAllInstances<IQueueBehavior<ValuesPost>>()));
 
             container.RegisterSingleton<IQueueBehavior<WorkItemData>>(() => new MetricsQueueBehavior<WorkItemData>(metricsClient));
             var handlers = new WorkItemHandlers();
             handlers.Register<DeleteValueWorkItem, DeleteValueWorkItemHandler>();
             container.RegisterSingleton(handlers);
+
             container.RegisterSingleton<IQueue<WorkItemData>>(() => new InMemoryQueue<WorkItemData>(behaviours: container.GetAllInstances<IQueueBehavior<WorkItemData>>(), workItemTimeout: TimeSpan.FromHours(1)));
             
             container.RegisterSingleton<IMessageBus, InMemoryMessageBus>();
