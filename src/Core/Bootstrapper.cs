@@ -2,6 +2,7 @@
 using Foundatio.Caching;
 using Foundatio.Jobs;
 using Foundatio.Lock;
+using Foundatio.Logging;
 using Foundatio.Messaging;
 using Foundatio.Metrics;
 using Foundatio.Queues;
@@ -17,7 +18,10 @@ namespace Samples.Core {
         public void RegisterServices(Container container) {
             // Foundation service provider
             ServiceProvider.Current = container;
-            
+
+            // use nlog logging implementation
+            //Logger.RegisterWriter(NLogWriter.WriteLog);
+
             var metricsClient = new InMemoryMetricsClient();
             metricsClient.StartDisplayingStats();
             container.RegisterSingleton<IMetricsClient>(metricsClient);

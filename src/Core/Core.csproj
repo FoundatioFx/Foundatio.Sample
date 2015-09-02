@@ -76,6 +76,7 @@
     <Compile Include="Dependency\SimpleInjectorSignalRDependencyResolver.cs" />
     <Compile Include="Extensions\ContainerExtensions.cs" />
     <Compile Include="Jobs\ValuesPostJob.cs" />
+    <Compile Include="Logging\NLogWriter.cs" />
     <Compile Include="Models\EntityChanged.cs" />
     <Compile Include="Models\ValuesPost.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
