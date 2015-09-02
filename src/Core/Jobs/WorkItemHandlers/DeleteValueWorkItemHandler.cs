@@ -2,20 +2,27 @@
 using System.Threading.Tasks;
 using Foundatio.Caching;
 using Foundatio.Jobs;
+using Foundatio.Lock;
 using Foundatio.Messaging;
-using Foundatio.Utility;
 using Samples.Core.Models;
 
 namespace Samples.Core.Jobs.WorkItemHandlers {
     public class DeleteValueWorkItemHandler : WorkItemHandlerBase {
         private readonly ICacheClient _cacheClient;
         private readonly IMessagePublisher _publisher;
+        private readonly ILockProvider _lockProvider;
 
-        public DeleteValueWorkItemHandler(ICacheClient cacheClient, IMessagePublisher publisher) {
+
+        public DeleteValueWorkItemHandler(ICacheClient cacheClient, IMessagePublisher publisher, ILockProvider lockProvider) {
             _cacheClient = cacheClient;
             _publisher = publisher;
+            _lockProvider = lockProvider;
         }
-        
+
+        //public override IDisposable GetWorkItemLock(WorkItemContext context) {
+        //    return _lockProvider.AcquireLock("DeleteValueWorkItemHandler");
+        //}
+
         public override async Task HandleItem(WorkItemContext context) {
             var workItem = context.GetData<DeleteValueWorkItem>();
             

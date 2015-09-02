@@ -16,12 +16,11 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                @Html.ActionLink("Application name", "Index", "Home", new { area = "" }, new { @class = "navbar-brand" })
+                @Html.ActionLink("Foundatio Sample", "Index", "Home", new { area = "" }, new { @class = "navbar-brand" })
             </div>
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">
                     <li>@Html.ActionLink("Home", "Index", "Home", new { area = "" }, null)</li>
-                    <li>@Html.ActionLink("API", "Index", "Help", new { area = "" }, null)</li>
                 </ul>
             </div>
         </div>
@@ -35,8 +34,28 @@
     </div>
 
     @Scripts.Render("~/bundles/jquery")
-    <script src="~/signalr/hubs"></script>
     @Scripts.Render("~/bundles/bootstrap")
+
+    <script type="text/javascript" src="~/signalr/hubs"></script>
+    <script type="text/javascript">
+        $(function() {
+            // The generated client-side hub proxy.
+            var messagesHub = $.connection.messages;
+
+            // Add a client-side hub method that the server will call
+            messagesHub.client.entityChanged = function(entityChanged) {
+                console.log(entityChanged);
+            }
+
+            messagesHub.client.workItemStatus = function(workItemStatus) {
+                console.log(workItemStatus);
+            }
+
+            // Start the connection
+            $.connection.hub.start();
+        });
+    </script>
+
     @RenderSection("scripts", required: false)
 </body>
 </html>

@@ -28,20 +28,22 @@ namespace Samples.Web.Controllers {
                 return null;
 
             var value = _cacheClient.Get<Guid?>(id);
-            if (!value.HasValue) {
-                // Simulate work
-                await Task.Delay(TimeSpan.FromSeconds(5));
+            if (value.HasValue)
+                return value.Value;
 
-                value = Guid.NewGuid();
-                _cacheClient.Set(id, value);
-                return value;
-            }
+            // Simulate work
+            await Task.Delay(TimeSpan.FromSeconds(5));
 
-            return null;
+            value = Guid.NewGuid();
+            _cacheClient.Set(id, value);
+            return value;
         }
 
         // POST api/values
         public void Post([FromBody] string value) {
+            if (String.IsNullOrEmpty(value))
+                return;
+
             _storage.SaveFile(value, Guid.NewGuid().ToString());
             _valuesPostQueue.Enqueue(new ValuesPost {
                 FilePath = value

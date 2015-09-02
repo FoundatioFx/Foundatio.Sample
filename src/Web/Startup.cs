@@ -23,19 +23,22 @@ namespace Samples.Web {
             var container = CreateContainer();
             GlobalConfiguration.Configuration.DependencyResolver = new SimpleInjectorWebApiDependencyResolver(container);
 
+            var resolver = new SimpleInjectorSignalRDependencyResolver(container);
+            app.MapSignalR(new HubConfiguration { Resolver = resolver, EnableDetailedErrors = true });
+
             VerifyContainer(container);
 
             app.UseWebApi(GlobalConfiguration.Configuration);
 
-            var resolver = new SimpleInjectorSignalRDependencyResolver(container);
-            app.MapSignalR(new HubConfiguration { Resolver = resolver });
             
             JobRunner.RunContinuousAsync<ValuesPostJob>();
+            JobRunner.RunContinuousAsync<WorkItemJob>(instanceCount: 2);
         }
 
         public static Container CreateContainer(bool includeInsulation = true) {
             var container = new Container();
             container.Options.AllowOverridingRegistrations = true;
+            container.Options.ResolveUnregisteredCollections = true;
 
             container.RegisterPackage<Bootstrapper>();
 

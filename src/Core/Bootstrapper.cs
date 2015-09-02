@@ -1,6 +1,7 @@
 ﻿using System;
 using Foundatio.Caching;
 using Foundatio.Jobs;
+using Foundatio.Lock;
 using Foundatio.Messaging;
 using Foundatio.Metrics;
 using Foundatio.Queues;
@@ -24,6 +25,7 @@ namespace Samples.Core {
 
             container.RegisterSingleton<IQueue<ValuesPost>>(() => new InMemoryQueue<ValuesPost>());
 
+            container.RegisterSingleton<IQueueBehavior<WorkItemData>>(() => new MetricsQueueBehavior<WorkItemData>(metricsClient));
             var handlers = new WorkItemHandlers();
             handlers.Register<DeleteValueWorkItem, DeleteValueWorkItemHandler>();
             container.RegisterSingleton(handlers);
@@ -33,6 +35,7 @@ namespace Samples.Core {
             container.RegisterSingleton<IMessagePublisher>(container.GetInstance<IMessageBus>);
             container.RegisterSingleton<IMessageSubscriber>(container.GetInstance<IMessageBus>);
 
+            container.RegisterSingleton<ILockProvider, CacheLockProvider>();
             container.RegisterSingleton<IFileStorage>(new InMemoryFileStorage());
         }
     }

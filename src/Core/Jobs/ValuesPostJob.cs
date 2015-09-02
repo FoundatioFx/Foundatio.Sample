@@ -52,7 +52,7 @@ namespace Samples.Core.Jobs {
 
             var result = _storage.GetFileContents(queueEntry.Value.FilePath);
             Guid guid;
-            if (Guid.TryParse(result, out guid)) {
+            if (!Guid.TryParse(result, out guid)) {
                 await _metricsClient.CounterAsync("values.errors");
                 queueEntry.Abandon();
                 await _storage.DeleteFileAsync(queueEntry.Value.FilePath, token);
