@@ -5,6 +5,7 @@ using Foundatio.Logging;
 using Foundatio.Messaging;
 using Foundatio.Queues;
 using Foundatio.Serializer;
+using Samples.Core;
 using Samples.Core.Models;
 using SimpleInjector;
 using SimpleInjector.Packaging;
@@ -15,10 +16,9 @@ namespace Insulation {
         public void RegisterServices(Container container) {
             // use nlog logging implementation
             //Logger.RegisterWriter(NLogWriter.WriteLog);
-
-            bool enableRedis = false;
-            if (enableRedis) {
-                var muxer = ConnectionMultiplexer.Connect("localhost");
+            
+            if (Settings.Current.EnableRedis) {
+                var muxer = ConnectionMultiplexer.Connect(Settings.Current.RedisConnectionString);
                 container.RegisterSingleton(muxer);
 
                 container.RegisterSingleton<ICacheClient, RedisHybridCacheClient>();

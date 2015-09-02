@@ -25,10 +25,9 @@ namespace Samples.Web {
             GlobalConfiguration.Configuration.DependencyResolver = new SimpleInjectorWebApiDependencyResolver(container);
 
             var resolver = new SimpleInjectorSignalRDependencyResolver(container);
-
-            bool enableRedis = false;
-            if (enableRedis) {
-                resolver.UseRedis(new RedisScaleoutConfiguration("localhost:6379", "sample.signalr"));
+            
+            if (Settings.Current.EnableRedis) {
+                resolver.UseRedis(new RedisScaleoutConfiguration(Settings.Current.RedisConnectionString, "sample.signalr"));
             }
 
             app.MapSignalR(new HubConfiguration { Resolver = resolver, EnableDetailedErrors = true });
