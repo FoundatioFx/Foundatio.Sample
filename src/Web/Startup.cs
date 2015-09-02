@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Threading;
 using System.Web.Http;
 using Foundatio.Jobs;
+using Foundatio.Logging;
 using Microsoft.AspNet.SignalR;
 using Microsoft.Owin;
 using Owin;
@@ -49,7 +50,7 @@ namespace Samples.Web {
             try {
                 insulationAssembly = Assembly.Load("Samples.Insulation");
             } catch (Exception ex) {
-                //Log.Error().Message("Unable to load the insulation assembly.").Exception(ex).Write();
+                Logger.Error().Message("Unable to load the insulation assembly.").Exception(ex).Write();
             }
 
             if (insulationAssembly != null)

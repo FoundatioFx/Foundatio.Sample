@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Foundatio.Caching;
 using Foundatio.Jobs;
+using Foundatio.Logging;
 using Foundatio.Messaging;
 using Foundatio.Metrics;
 using Foundatio.Queues;
@@ -37,7 +38,7 @@ namespace Samples.Core.Jobs {
                 queueEntry = _queue.Dequeue(TimeSpan.FromSeconds(1));
             } catch (Exception ex) {
                 if (!(ex is TimeoutException)) {
-                    //Log.Error().Exception(ex).Message("An error occurred while trying to dequeue the next ValuesPost: {0}", ex.Message).Write();
+                    Logger.Error().Exception(ex).Message("An error occurred while trying to dequeue the next ValuesPost: {0}", ex.Message).Write();
                     return JobResult.FromException(ex);
                 }
             }
@@ -62,7 +63,7 @@ namespace Samples.Core.Jobs {
             await _metricsClient.CounterAsync("values.dequeued");
             _cacheClient.Set(queueEntry.Value.FilePath, guid);
             await _metricsClient.CounterAsync("values.processsed");
-            //Log.Info().Message("Processing post: id={0} path={1} project={2} ip={3} v={4} agent={5}", queueEntry.Id, queueEntry.Value.FilePath, eventPostInfo.ProjectId, eventPostInfo.IpAddress, eventPostInfo.ApiVersion, eventPostInfo.UserAgent).WriteIf(!isInternalProject);
+            Logger.Info().Message("Processing post: id={0} path={1}", queueEntry.Id, queueEntry.Value.FilePath).Write();
 
             _publisher.Publish(new EntityChanged {
                 ChangeType = ChangeType.Added,
