@@ -1,11 +1,10 @@
 ﻿using System;
-using Foundatio.Caching;
 using Foundatio.Jobs;
 using Foundatio.Lock;
-using Foundatio.Logging;
 using Foundatio.Messaging;
 using Foundatio.Metrics;
 using Foundatio.Queues;
+using Foundatio.Serializer;
 using Foundatio.ServiceProviders;
 using Foundatio.Storage;
 using Samples.Core.Jobs.WorkItemHandlers;
@@ -19,13 +18,11 @@ namespace Samples.Core {
             // Foundation service provider
             ServiceProvider.Current = container;
 
-            // use nlog logging implementation
-            //Logger.RegisterWriter(NLogWriter.WriteLog);
+            container.RegisterSingleton<ISerializer>(() => new JsonNetSerializer());
 
             var metricsClient = new InMemoryMetricsClient();
             metricsClient.StartDisplayingStats();
             container.RegisterSingleton<IMetricsClient>(metricsClient);
-            container.RegisterSingleton<ICacheClient, InMemoryCacheClient>();
 
             container.RegisterSingleton<IQueueBehavior<ValuesPost>>(() => new MetricsQueueBehavior<ValuesPost>(metricsClient));
             container.RegisterSingleton<IQueue<ValuesPost>>(() => new InMemoryQueue<ValuesPost>(behaviours: container.GetAllInstances<IQueueBehavior<ValuesPost>>()));

@@ -20,11 +20,17 @@ namespace Samples.Web {
     public partial class Startup {
         public void Configuration(IAppBuilder app) {
             ConfigureAuth(app);
-
+            
             var container = CreateContainer();
             GlobalConfiguration.Configuration.DependencyResolver = new SimpleInjectorWebApiDependencyResolver(container);
 
             var resolver = new SimpleInjectorSignalRDependencyResolver(container);
+
+            bool enableRedis = false;
+            if (enableRedis) {
+                resolver.UseRedis(new RedisScaleoutConfiguration("localhost:6379", "sample.signalr"));
+            }
+
             app.MapSignalR(new HubConfiguration { Resolver = resolver, EnableDetailedErrors = true });
 
             VerifyContainer(container);
