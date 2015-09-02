@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Reflection;
+using System.Threading;
 using System.Web.Http;
+using Foundatio.Jobs;
 using Microsoft.AspNet.SignalR;
 using Microsoft.Owin;
 using Owin;
 using Samples.Core;
 using Samples.Core.Dependency;
 using Samples.Core.Extensions;
+using Samples.Core.Jobs;
 using SimpleInjector;
 using SimpleInjector.Integration.WebApi;
 
@@ -26,6 +29,8 @@ namespace Samples.Web {
 
             var resolver = new SimpleInjectorSignalRDependencyResolver(container);
             app.MapSignalR(new HubConfiguration { Resolver = resolver });
+            
+            JobRunner.RunContinuousAsync<ValuesPostJob>();
         }
 
         public static Container CreateContainer(bool includeInsulation = true) {

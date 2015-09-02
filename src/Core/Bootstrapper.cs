@@ -6,7 +6,8 @@ using Foundatio.Metrics;
 using Foundatio.Queues;
 using Foundatio.ServiceProviders;
 using Foundatio.Storage;
-using Samples.Core.WorkItemHandlers;
+using Samples.Core.Jobs.WorkItemHandlers;
+using Samples.Core.Models;
 using SimpleInjector;
 using SimpleInjector.Packaging;
 
@@ -20,14 +21,14 @@ namespace Samples.Core {
             metricsClient.StartDisplayingStats();
             container.RegisterSingleton<IMetricsClient>(metricsClient);
             container.RegisterSingleton<ICacheClient, InMemoryCacheClient>();
-            //container.RegisterSingleton<IQueue<EventPost>>(() => new InMemoryQueue<EventPost>(statName: "posts.queuesize", metrics: container.GetInstance<IMetricsClient>()));
 
-            var handlers = new Foundatio.Jobs.WorkItemHandlers();
+            container.RegisterSingleton<IQueue<ValuesPost>>(() => new InMemoryQueue<ValuesPost>());
+
+            var handlers = new WorkItemHandlers();
             handlers.Register<DeleteValueWorkItem, DeleteValueWorkItemHandler>();
-
             container.RegisterSingleton(handlers);
             container.RegisterSingleton<IQueue<WorkItemData>>(() => new InMemoryQueue<WorkItemData>(behaviours: container.GetAllInstances<IQueueBehavior<WorkItemData>>(), workItemTimeout: TimeSpan.FromHours(1)));
-
+            
             container.RegisterSingleton<IMessageBus, InMemoryMessageBus>();
             container.RegisterSingleton<IMessagePublisher>(container.GetInstance<IMessageBus>);
             container.RegisterSingleton<IMessageSubscriber>(container.GetInstance<IMessageBus>);

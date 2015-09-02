@@ -2,21 +2,21 @@
 using System.Threading.Tasks;
 using Foundatio.Caching;
 using Foundatio.Jobs;
+using Foundatio.Messaging;
 using Foundatio.Utility;
+using Samples.Core.Models;
 
-namespace Samples.Core.WorkItemHandlers {
-    public class DeleteValueWorkItemHandler : IWorkItemHandler {
+namespace Samples.Core.Jobs.WorkItemHandlers {
+    public class DeleteValueWorkItemHandler : WorkItemHandlerBase {
         private readonly ICacheClient _cacheClient;
+        private readonly IMessagePublisher _publisher;
 
-        public DeleteValueWorkItemHandler(ICacheClient cacheClient) {
+        public DeleteValueWorkItemHandler(ICacheClient cacheClient, IMessagePublisher publisher) {
             _cacheClient = cacheClient;
+            _publisher = publisher;
         }
-
-        public IDisposable GetWorkItemLock(WorkItemContext context) {
-            return Disposable.Empty;
-        }
-
-        public async Task HandleItem(WorkItemContext context) {
+        
+        public override async Task HandleItem(WorkItemContext context) {
             var workItem = context.GetData<DeleteValueWorkItem>();
             
             context.ReportProgress(0, String.Format("Starting to delete item: {0}", workItem.Id));
@@ -29,6 +29,10 @@ namespace Samples.Core.WorkItemHandlers {
             await Task.Delay(TimeSpan.FromSeconds(.5));
 
             _cacheClient.Remove(workItem.Id);
+            _publisher.Publish(new EntityChanged {
+                ChangeType = ChangeType.Removed,
+                Id = workItem.Id
+            });
 
             context.ReportProgress(100);
         }
