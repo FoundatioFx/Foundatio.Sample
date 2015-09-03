@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using Foundatio.Logging;
 using Newtonsoft.Json;
+using Samples.Core.Extensions;
 
 namespace Samples.Core.Utility {
     public abstract class SettingsBase<T> : SingletonBase<T>, IInitializable where T : class {
