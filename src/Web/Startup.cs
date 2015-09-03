@@ -25,10 +25,9 @@ namespace Samples.Web {
             GlobalConfiguration.Configuration.DependencyResolver = new SimpleInjectorWebApiDependencyResolver(container);
 
             var resolver = new SimpleInjectorSignalRDependencyResolver(container);
-            
-            if (Settings.Current.EnableRedis) {
+
+            if (Settings.Current.EnableRedis)
                 resolver.UseRedis(new RedisScaleoutConfiguration(Settings.Current.RedisConnectionString, "sample.signalr"));
-            }
 
             app.MapSignalR(new HubConfiguration { Resolver = resolver, EnableDetailedErrors = true });
 
@@ -44,7 +43,6 @@ namespace Samples.Web {
         public static Container CreateContainer(bool includeInsulation = true) {
             var container = new Container();
             container.Options.AllowOverridingRegistrations = true;
-            container.Options.ResolveUnregisteredCollections = true;
 
             container.RegisterPackage<Bootstrapper>();
 

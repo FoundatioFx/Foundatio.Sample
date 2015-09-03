@@ -1,25 +1,60 @@
 ﻿<div class="jumbotron">
     <h1>Foundatio Samples</h1>
-    <p class="lead">A sample application that shows off some of the features of foundatio</p>
+    <p class="lead">
+        A sample application that shows off some of the features of Foundatio. For all of the examples below,
+        please take a look at the JavaScript console (Press F12 now) for client side messages via SignalR.
+    </p>
+    <p>
+        By default this example will use the in memory versions of Foundatio. In memory versions do not scale across
+        processes or persist information across application restarts. To scale out out this example, please uncomment
+        the RedisConnectionString in the web.config and ensure <a href="http://redis.io/download" target="_blank">redis</a>
+        is installed.
+    </p>
     <p><a href="https://github.com/exceptionless/Foundatio" class="btn btn-primary btn-lg">Learn more &raquo;</a></p>
 </div>
 <div class="row">
     <div class="col-md-4">
-        <h2>Caching</h2>
-        <p>Attempt to get the value from the cache</p>
+        <h2>1. Caching</h2>
+        <p>
+            Attempt to get a guid from the cache. If the value is not cached the value will be populated after 5 seconds.
+            This code makes a call to the ValuesController Get controller action
+        </p>
         <p><a class="btn btn-default" onclick="getValue(_guid)">Get Value</a></p>
     </div>
     <div class="col-md-4">
-        <h2>File storage and Jobs</h2>
-        <p>Post a value which will save the file and queue the work item to a dedicated job</p>
+        <h2>2. Jobs, Message Bus, Queues, Caching</h2>
+        <p>
+            Posts a guid to the ValuesController, this will save a file to storage with a new guid and enqueue a work item
+            to a dedicated job (ValuesPostJob). This job will then dequeue the item and read the guid from storage and parse it.
+            If it can be parsed it will be persisted to the cache and publish a notification on the message bus.
+        </p>
+        <p>
+            When you call Post Value you can then Get Value button to get the updated guid that was processed from the EventPostsJob.
+            Clicking this button multiple times will trigger the jobs to run multiple times and will also increment the metrics
+            (visible from the debug window when running in memory versions).
+        </p>
+        <p>
+            This example shows off how jobs, queues, and the message bus work together.
+        </p>
         <p>
             <a class="btn btn-default" onclick="postValue(_guid)">Post Value</a>
             <a class="btn btn-default" onclick="postValue(guid())">Post Random Value</a>
         </p>
     </div>
     <div class="col-md-4">
-        <h2>Work Item Job</h2>
-        <p>Attempt to delete the item via a work item.</p>
+        <h2>3. Shared Jobs, Message Bus, Queues, Caching</h2>
+        <p>
+            Deletes an id from the cache by calling the ValuesController Delete controller action. Which enqueues a shared job work item (DeleteValueWorkItemHandler).
+            Unlike dedicated jobs which are processing one job type, shared jobs can handle different job types and process them at anytime.
+            This is great when you have long running tasks that don't happen very often, such as deleting an entity with many children.
+        </p>
+        <p>
+            The nice thing about shared jobs is that you can easily report the progress via the messagebus by calling the context.ReportProgress(percent, message);
+        </p>
+        <p>
+            Please note that if you are seeing duplicated messages reported to the console, this is because there are two instances of the shared jobs running.
+            To fix this, you'll need to open the DeleteValueWorkItemHandler in the Core project and uncomment GetWorkItemLock to add locking to this job.
+        </p>
         <p><a class="btn btn-default" onclick="deleteValue(_guid)">Delete Value</a></p>
     </div>
 </div>

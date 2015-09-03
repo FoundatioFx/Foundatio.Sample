@@ -14,9 +14,10 @@ using StackExchange.Redis;
 namespace Insulation {
     public class Bootstrapper : IPackage {
         public void RegisterServices(Container container) {
-            // use nlog logging implementation
+            // NOTE: Uncomment to use nlog logging implementation
             //Logger.RegisterWriter(NLogWriter.WriteLog);
-            
+
+            // NOTE: To enable redis, please uncomment the RedisConnectionString string in the web.config
             if (Settings.Current.EnableRedis) {
                 var muxer = ConnectionMultiplexer.Connect(Settings.Current.RedisConnectionString);
                 container.RegisterSingleton(muxer);

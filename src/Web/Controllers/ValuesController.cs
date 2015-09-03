@@ -40,13 +40,13 @@ namespace Samples.Web.Controllers {
         }
 
         // POST api/values
-        public void Post([FromBody] string value) {
-            if (String.IsNullOrEmpty(value))
+        public void Post([FromBody] string id) {
+            if (String.IsNullOrEmpty(id))
                 return;
 
-            _storage.SaveFile(value, Guid.NewGuid().ToString());
+            _storage.SaveFile(id, Guid.NewGuid().ToString());
             _valuesPostQueue.Enqueue(new ValuesPost {
-                FilePath = value
+                FilePath = id
             });
         }
 
