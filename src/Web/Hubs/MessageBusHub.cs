@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Foundatio.Jobs;
 using Foundatio.Messaging;
 using Microsoft.AspNet.SignalR;
@@ -14,26 +16,22 @@ namespace Samples.Web.Hubs {
     [HubName("messages")]
     public class MessageBusHub : Hub<IMessageBusHubClientMethods> {
         public MessageBusHub(IMessageSubscriber subscriber) {
-            subscriber.Subscribe<EntityChanged>(OnEntityChanged);
-            subscriber.Subscribe<WorkItemStatus>(OnWorkItemStatus);
+            subscriber.Subscribe<EntityChanged>(OnEntityChangedAsync);
+            subscriber.Subscribe<WorkItemStatus>(OnWorkItemStatusAsync);
         }
 
-        private void OnEntityChanged(EntityChanged entityChanged) {
-            if (entityChanged == null)
-                return;
-
-            try {
+        private Task OnEntityChangedAsync(EntityChanged entityChanged, CancellationToken cancellationToken = default(CancellationToken)) {
+            if (entityChanged != null)
                 Clients.All.entityChanged(entityChanged);
-            } catch (NullReferenceException) {} // TODO: Remove this when SignalR bug is fixed.
+
+            return Task.FromResult(0);
         }
         
-        private void OnWorkItemStatus(WorkItemStatus workItemStatus) {
-            if (workItemStatus == null)
-                return;
-
-            try {
+        private Task OnWorkItemStatusAsync(WorkItemStatus workItemStatus, CancellationToken cancellationToken = default(CancellationToken)) {
+            if (workItemStatus != null)
                 Clients.All.workItemStatus(workItemStatus);
-            } catch (NullReferenceException) {} // TODO: Remove this when SignalR bug is fixed.
+
+            return Task.FromResult(0);
         }
     }
 }

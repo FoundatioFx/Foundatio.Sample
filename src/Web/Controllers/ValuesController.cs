@@ -23,11 +23,11 @@ namespace Samples.Web.Controllers {
         }
 
         // GET api/values/xyz
-        public async Task<Guid?> Get(string id) {
+        public async Task<Guid?> GetAsync(string id) {
             if (String.IsNullOrEmpty(id))
                 return null;
 
-            var value = _cacheClient.Get<Guid?>(id);
+            var value = (await _cacheClient.GetAsync<Guid?>(id)).Value;
             if (value.HasValue)
                 return value.Value;
 
@@ -35,24 +35,24 @@ namespace Samples.Web.Controllers {
             await Task.Delay(TimeSpan.FromSeconds(5));
 
             value = Guid.NewGuid();
-            _cacheClient.Set(id, value);
+            await _cacheClient.SetAsync(id, value);
             return value;
         }
 
         // POST api/values
-        public void Post([FromBody] string id) {
+        public async Task PostAsync([FromBody] string id) {
             if (String.IsNullOrEmpty(id))
                 return;
 
-            _storage.SaveFile(id, Guid.NewGuid().ToString());
-            _valuesPostQueue.Enqueue(new ValuesPost {
+            await _storage.SaveFileAsync(id, Guid.NewGuid().ToString());
+            await _valuesPostQueue.EnqueueAsync(new ValuesPost {
                 FilePath = id
             });
         }
 
         // DELETE api/values/5
-        public void Delete(string id) {
-            _workItemQueue.Enqueue(new DeleteValueWorkItem { Id = id });
+        public Task DeleteAsync(string id) {
+            return _workItemQueue.EnqueueAsync(new DeleteValueWorkItem { Id = id });
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Foundatio.Caching;
 using Foundatio.Jobs;
@@ -19,29 +20,30 @@ namespace Samples.Core.Jobs.WorkItemHandlers {
             _lockProvider = lockProvider;
         }
 
-        //public override IDisposable GetWorkItemLock(WorkItemContext context) {
-        //    return _lockProvider.AcquireLock("DeleteValueWorkItemHandler");
+        // NOTE: Uncomment to ensure only one work item handler is called at a time.
+        //public override Task<ILock> GetWorkItemLockAsync(object workItem, CancellationToken cancellationToken = new CancellationToken()) {
+        //    return _lockProvider.AcquireAsync(nameof(DeleteValueWorkItemHandler), cancellationToken: cancellationToken);
         //}
 
-        public override async Task HandleItem(WorkItemContext context) {
+        public override async Task HandleItemAsync(WorkItemContext context) {
             var workItem = context.GetData<DeleteValueWorkItem>();
-            
-            context.ReportProgress(0, String.Format("Starting to delete item: {0}", workItem.Id));
+            await context.ReportProgressAsync(0, $"Starting to delete item: {workItem.Id}.");
+            await context.ReportProgressAsync(1, "If you are seeing multiple progresses. Please uncomment the lock in the DeleteValueWorkItemHandler.");
             await Task.Delay(TimeSpan.FromSeconds(2.5));
-            context.ReportProgress(50, String.Format("Deleting"));
+            await context.ReportProgressAsync(50, "Deleting");
             await Task.Delay(TimeSpan.FromSeconds(.5));
-            context.ReportProgress(70, String.Format("Deleting."));
+            await context.ReportProgressAsync(70, "Deleting.");
             await Task.Delay(TimeSpan.FromSeconds(.5));
-            context.ReportProgress(90, String.Format("Deleting.."));
+            await context.ReportProgressAsync(90, "Deleting..");
             await Task.Delay(TimeSpan.FromSeconds(.5));
 
-            _cacheClient.Remove(workItem.Id);
-            _publisher.Publish(new EntityChanged {
+            await _cacheClient.RemoveAsync(workItem.Id);
+            await _publisher.PublishAsync(new EntityChanged {
                 ChangeType = ChangeType.Removed,
                 Id = workItem.Id
             });
 
-            context.ReportProgress(100);
+            await context.ReportProgressAsync(100);
         }
     }
 

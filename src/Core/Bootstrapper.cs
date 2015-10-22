@@ -30,17 +30,18 @@ namespace Samples.Core {
                 Lifestyle.Singleton.CreateRegistration(
                     () => new MetricsQueueBehavior<ValuesPost>(metricsClient), container)
             });
-            container.RegisterSingleton<IQueue<ValuesPost>>(() => new InMemoryQueue<ValuesPost>(behaviours: container.GetAllInstances<IQueueBehavior<ValuesPost>>()));
+            container.RegisterSingleton<IQueue<ValuesPost>>(() => new InMemoryQueue<ValuesPost>(behaviors: container.GetAllInstances<IQueueBehavior<ValuesPost>>()));
             
             container.RegisterCollection(typeof(IQueueBehavior<WorkItemData>), new[] {
                 Lifestyle.Singleton.CreateRegistration(
                     () => new MetricsQueueBehavior<WorkItemData>(metricsClient), container)
             });
+
             var handlers = new WorkItemHandlers();
             handlers.Register<DeleteValueWorkItem, DeleteValueWorkItemHandler>();
             container.RegisterSingleton(handlers);
 
-            container.RegisterSingleton<IQueue<WorkItemData>>(() => new InMemoryQueue<WorkItemData>(behaviours: container.GetAllInstances<IQueueBehavior<WorkItemData>>(), workItemTimeout: TimeSpan.FromHours(1)));
+            container.RegisterSingleton<IQueue<WorkItemData>>(() => new InMemoryQueue<WorkItemData>(behaviors: container.GetAllInstances<IQueueBehavior<WorkItemData>>(), workItemTimeout: TimeSpan.FromHours(1)));
             
             container.RegisterSingleton<IMessageBus, InMemoryMessageBus>();
             container.RegisterSingleton<IMessagePublisher>(container.GetInstance<IMessageBus>);

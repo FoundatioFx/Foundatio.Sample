@@ -23,8 +23,8 @@ namespace Insulation {
                 container.RegisterSingleton(muxer);
 
                 container.RegisterSingleton<ICacheClient, RedisHybridCacheClient>();
-                container.RegisterSingleton<IQueue<ValuesPost>>(() => new RedisQueue<ValuesPost>(muxer, behaviours: container.GetAllInstances<IQueueBehavior<ValuesPost>>()));
-                container.RegisterSingleton<IQueue<WorkItemData>>(() => new RedisQueue<WorkItemData>(muxer, behaviours: container.GetAllInstances<IQueueBehavior<WorkItemData>>(), workItemTimeout: TimeSpan.FromHours(1)));
+                container.RegisterSingleton<IQueue<ValuesPost>>(() => new RedisQueue<ValuesPost>(muxer, behaviors: container.GetAllInstances<IQueueBehavior<ValuesPost>>()));
+                container.RegisterSingleton<IQueue<WorkItemData>>(() => new RedisQueue<WorkItemData>(muxer, behaviors: container.GetAllInstances<IQueueBehavior<WorkItemData>>(), workItemTimeout: TimeSpan.FromHours(1)));
               
                 container.RegisterSingleton<IMessageBus>(() => new RedisMessageBus(muxer.GetSubscriber(), serializer: container.GetInstance<ISerializer>()));
             } else {

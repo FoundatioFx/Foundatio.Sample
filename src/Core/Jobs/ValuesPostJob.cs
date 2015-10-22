@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading;
 using System.Threading.Tasks;
 using Foundatio.Caching;
 using Foundatio.Jobs;
@@ -12,66 +11,42 @@ using Foundatio.Utility;
 using Samples.Core.Models;
 
 namespace Samples.Core.Jobs {
-    public class ValuesPostJob : JobBase {
+    public class ValuesPostJob : QueueProcessorJobBase<ValuesPost> {
         private readonly ICacheClient _cacheClient;
-        private readonly IQueue<ValuesPost> _queue;
         private readonly IMetricsClient _metricsClient;
         private readonly IMessagePublisher _publisher;
         private readonly IFileStorage _storage;
 
-        public ValuesPostJob(ICacheClient cacheClient, IQueue<ValuesPost> queue, IMetricsClient metricsClient, IMessagePublisher publisher, IFileStorage storage) {
+        public ValuesPostJob(ICacheClient cacheClient, IQueue<ValuesPost> queue, IMetricsClient metricsClient, IMessagePublisher publisher, IFileStorage storage) : base(queue) {
             _cacheClient = cacheClient;
-            _queue = queue;
             _metricsClient = metricsClient;
             _publisher = publisher;
             _storage = storage;
         }
 
-        public void RunUntilEmpty() {
-            while (_queue.GetQueueStats().Queued > 0)
-                Run();
-        }
+        protected override async Task<JobResult> ProcessQueueEntryAsync(JobQueueEntryContext<ValuesPost> context) {
+            var result = await _storage.GetFileContentsAsync(context.QueueEntry.Value.FilePath);
 
-        protected override async Task<JobResult> RunInternalAsync(CancellationToken token) {
-            QueueEntry<ValuesPost> queueEntry = null;
-            try {
-                queueEntry = _queue.Dequeue(TimeSpan.FromSeconds(1));
-            } catch (Exception ex) {
-                if (!(ex is TimeoutException)) {
-                    Logger.Error().Exception(ex).Message("An error occurred while trying to dequeue the next ValuesPost: {0}", ex.Message).Write();
-                    return JobResult.FromException(ex);
-                }
-            }
-
-            if (queueEntry == null)
-                return JobResult.Success;
-
-            if (token.IsCancellationRequested) {
-                queueEntry.Abandon();
-                return JobResult.Cancelled;
-            }
-
-            var result = _storage.GetFileContents(queueEntry.Value.FilePath);
             Guid guid;
             if (!Guid.TryParse(result, out guid)) {
                 await _metricsClient.CounterAsync("values.errors");
-                queueEntry.Abandon();
-                await _storage.DeleteFileAsync(queueEntry.Value.FilePath, token);
-                return JobResult.FailedWithMessage(String.Format("Unable to retrieve values data '{0}'.", queueEntry.Value.FilePath));
+                await context.QueueEntry.AbandonAsync();
+                await _storage.DeleteFileAsync(context.QueueEntry.Value.FilePath, context.CancellationToken);
+                return JobResult.FailedWithMessage($"Unable to retrieve values data '{context.QueueEntry.Value.FilePath}'.");
             }
 
             await _metricsClient.CounterAsync("values.dequeued");
-            _cacheClient.Set(queueEntry.Value.FilePath, guid);
-            await _metricsClient.CounterAsync("values.processsed");
-            Logger.Info().Message("Processing post: id={0} path={1}", queueEntry.Id, queueEntry.Value.FilePath).Write();
+            await _cacheClient.SetAsync(context.QueueEntry.Value.FilePath, guid);
+            await _metricsClient.CounterAsync("values.processed");
+            Logger.Info().Message("Processing post: id={0} path={1}", context.QueueEntry.Id, context.QueueEntry.Value.FilePath).Write();
 
-            _publisher.Publish(new EntityChanged {
+            await _publisher.PublishAsync(new EntityChanged {
                 ChangeType = ChangeType.Added,
-                Id = queueEntry.Value.FilePath,
+                Id = context.QueueEntry.Value.FilePath,
                 Data = new DataDictionary { { "Value", guid } }
             });
-            queueEntry.Complete();
-            await _storage.DeleteFileAsync(queueEntry.Value.FilePath, token);
+            await context.QueueEntry.CompleteAsync();
+            await _storage.DeleteFileAsync(context.QueueEntry.Value.FilePath, context.CancellationToken);
 
             return JobResult.Success;
         }
