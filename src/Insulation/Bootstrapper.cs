@@ -2,21 +2,20 @@
 using Foundatio.Caching;
 using Foundatio.Jobs;
 using Foundatio.Logging;
+using Foundatio.Logging.NLog;
 using Foundatio.Messaging;
 using Foundatio.Queues;
 using Foundatio.Serializer;
 using Samples.Core;
 using Samples.Core.Models;
 using SimpleInjector;
-using SimpleInjector.Packaging;
 using StackExchange.Redis;
 
 namespace Insulation {
-    public class Bootstrapper : IPackage {
-        public void RegisterServices(Container container) {
-            // NOTE: Uncomment to use nlog logging implementation
-            //Logger.RegisterWriter(NLogWriter.WriteLog);
-
+    public class Bootstrapper {
+        public static void RegisterServices(Container container, ILoggerFactory loggerFactory) {
+            loggerFactory.AddNLog();
+            
             // NOTE: To enable redis, please uncomment the RedisConnectionString string in the web.config
             if (Settings.Current.EnableRedis) {
                 var muxer = ConnectionMultiplexer.Connect(Settings.Current.RedisConnectionString);
@@ -28,7 +27,8 @@ namespace Insulation {
               
                 container.RegisterSingleton<IMessageBus>(() => new RedisMessageBus(muxer.GetSubscriber(), serializer: container.GetInstance<ISerializer>()));
             } else {
-                Logger.Warn().Message("Redis is NOT enabled.").Write();
+                var logger = loggerFactory.CreateLogger<Bootstrapper>();
+                logger.Warn().Message("Redis is NOT enabled.").Write();
             }
         }
     }

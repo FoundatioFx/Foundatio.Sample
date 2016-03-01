@@ -16,12 +16,16 @@ using SimpleInjector;
 using SimpleInjector.Integration.WebApi;
 
 [assembly: OwinStartup(typeof(Samples.Web.Startup))]
+
 namespace Samples.Web {
     public partial class Startup {
         public void Configuration(IAppBuilder app) {
+            var loggerFactory = Settings.Current.GetLoggerFactory();
+            var logger = loggerFactory.CreateLogger("AppBuilder");
+
             ConfigureAuth(app);
-            
-            var container = CreateContainer();
+
+            var container = CreateContainer(loggerFactory, logger);
             GlobalConfiguration.Configuration.DependencyResolver = new SimpleInjectorWebApiDependencyResolver(container);
 
             var resolver = new SimpleInjectorSignalRDependencyResolver(container);
@@ -29,22 +33,23 @@ namespace Samples.Web {
             if (Settings.Current.EnableRedis)
                 resolver.UseRedis(new RedisScaleoutConfiguration(Settings.Current.RedisConnectionString, "sample.signalr"));
 
-            app.MapSignalR(new HubConfiguration { Resolver = resolver, EnableDetailedErrors = true });
+            app.MapSignalR(new HubConfiguration {
+                Resolver = resolver,
+                EnableDetailedErrors = true
+            });
 
             VerifyContainer(container);
 
             app.UseWebApi(GlobalConfiguration.Configuration);
 
-            
-            JobRunner.RunContinuousAsync<ValuesPostJob>();
-            JobRunner.RunContinuousAsync<WorkItemJob>(instanceCount: 2);
+            RunJobs(loggerFactory);
         }
 
-        public static Container CreateContainer(bool includeInsulation = true) {
+        public static Container CreateContainer(ILoggerFactory loggerFactory, ILogger logger, bool includeInsulation = true) {
             var container = new Container();
             container.Options.AllowOverridingRegistrations = true;
 
-            container.RegisterPackage<Bootstrapper>();
+            Bootstrapper.RegisterServices(container, loggerFactory);
 
             if (!includeInsulation)
                 return container;
@@ -53,16 +58,21 @@ namespace Samples.Web {
             try {
                 insulationAssembly = Assembly.Load("Samples.Insulation");
             } catch (Exception ex) {
-                Logger.Error().Message("Unable to load the insulation assembly.").Exception(ex).Write();
+                logger.Error().Message("Unable to load the insulation assembly.").Exception(ex).Write();
             }
 
-            if (insulationAssembly != null)
-                container.RegisterPackages(new[] { insulationAssembly });
+            if (insulationAssembly != null) {
+                var bootstrapperType = insulationAssembly.GetType("Samples.Insulation.Bootstrapper");
+                if (bootstrapperType == null)
+                    return container;
+
+                bootstrapperType.GetMethod("RegisterServices", BindingFlags.Public | BindingFlags.Static).Invoke(null, new object[] { container, loggerFactory });
+            }
 
             return container;
         }
 
-       private static void VerifyContainer(Container container) {
+        private static void VerifyContainer(Container container) {
             try {
                 container.Verify();
             } catch (Exception ex) {
@@ -82,6 +92,12 @@ namespace Samples.Web {
                 Debug.WriteLine(ex.Message);
                 throw;
             }
+        }
+
+        private static void RunJobs(LoggerFactory loggerFactory) {
+            var jobRunner = new JobRunner(loggerFactory);
+            jobRunner.RunContinuousAsync<ValuesPostJob>();
+            jobRunner.RunContinuousAsync<WorkItemJob>(instanceCount: 2);
         }
     }
 }

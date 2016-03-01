@@ -17,7 +17,7 @@ namespace Samples.Core.Jobs {
         private readonly IMessagePublisher _publisher;
         private readonly IFileStorage _storage;
 
-        public ValuesPostJob(ICacheClient cacheClient, IQueue<ValuesPost> queue, IMetricsClient metricsClient, IMessagePublisher publisher, IFileStorage storage) : base(queue) {
+        public ValuesPostJob(ICacheClient cacheClient, IQueue<ValuesPost> queue, IMetricsClient metricsClient, IMessagePublisher publisher, IFileStorage storage, ILoggerFactory loggerFactory = null) : base(queue, loggerFactory) {
             _cacheClient = cacheClient;
             _metricsClient = metricsClient;
             _publisher = publisher;
@@ -38,7 +38,7 @@ namespace Samples.Core.Jobs {
             await _metricsClient.CounterAsync("values.dequeued");
             await _cacheClient.SetAsync(context.QueueEntry.Value.FilePath, guid);
             await _metricsClient.CounterAsync("values.processed");
-            Logger.Info().Message("Processing post: id={0} path={1}", context.QueueEntry.Id, context.QueueEntry.Value.FilePath).Write();
+            _logger.Info().Message("Processing post: id={0} path={1}", context.QueueEntry.Id, context.QueueEntry.Value.FilePath).Write();
 
             await _publisher.PublishAsync(new EntityChanged {
                 ChangeType = ChangeType.Added,

@@ -106,8 +106,7 @@ namespace Samples.Core.Utility {
                     }
 
                     _configVariables = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(configPath));
-                } catch (Exception ex) {
-                    Logger.Error().Exception(ex).Message("Unable to load config.json file. Error: {0}", ex.Message);
+                } catch (Exception) {
                     _configVariables = new Dictionary<string, string>();
                     return null;
                 }
@@ -127,10 +126,8 @@ namespace Samples.Core.Utility {
             if (_environmentVariables == null) {
                 try {
                     _environmentVariables = Environment.GetEnvironmentVariables().Cast<DictionaryEntry>().ToDictionary(e => e.Key.ToString(), e => e.Value.ToString());
-                } catch (Exception ex) {
+                } catch (Exception) {
                     _environmentVariables = new Dictionary<string, string>();
-
-                    Logger.Error().Exception(ex).Message("Error while reading environmental variables.").Write();
                     return null;
                 }
             }

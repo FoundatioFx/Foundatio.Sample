@@ -2,6 +2,7 @@
 using Foundatio.Caching;
 using Foundatio.Jobs;
 using Foundatio.Lock;
+using Foundatio.Logging;
 using Foundatio.Messaging;
 using Foundatio.Metrics;
 using Foundatio.Queues;
@@ -11,18 +12,17 @@ using Foundatio.Storage;
 using Samples.Core.Jobs.WorkItemHandlers;
 using Samples.Core.Models;
 using SimpleInjector;
-using SimpleInjector.Packaging;
 
 namespace Samples.Core {
-    public class Bootstrapper : IPackage {
-        public void RegisterServices(Container container) {
-            // Foundation service provider
-            ServiceProvider.Current = container;
+    public class Bootstrapper {
+        public static void RegisterServices(Container container, ILoggerFactory loggerFactory) {
+            container.RegisterSingleton<ILoggerFactory>(loggerFactory);
+            container.RegisterSingleton(typeof(ILogger<>), typeof(Logger<>));
 
+            ServiceProvider.Current = container;
             container.RegisterSingleton<ISerializer>(() => new JsonNetSerializer());
 
             var metricsClient = new InMemoryMetricsClient();
-            metricsClient.StartDisplayingStats();
             container.RegisterSingleton<IMetricsClient>(metricsClient);
             container.RegisterSingleton<ICacheClient, InMemoryCacheClient>();
 
