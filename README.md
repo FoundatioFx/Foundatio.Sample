@@ -1,5 +1,5 @@
 # Foundatio.Samples
-[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/exceptionless/Discuss)
+[![Slack Status](https://slack.exceptionless.com/badge.svg)](https://slack.exceptionless.com)
 
 A sample application that shows off some of the features of [Foundatio](https://github.com/exceptionless/Foundatio). For all of the examples below, please take a look at the JavaScript console (Press F12 now) for client side messages via [SignalR](http://www.asp.net/signalr).
 
