@@ -1,29 +1,183 @@
-![Foundatio](https://raw.githubusercontent.com/FoundatioFx/Foundatio/master/media/foundatio.png "Foundatio")
+# Foundatio Sample
 
-[![Slack Status](https://slack.exceptionless.com/badge.svg)](https://slack.exceptionless.com)
+[![Build status](https://github.com/FoundatioFx/Foundatio.Sample/actions/workflows/build.yml/badge.svg)](https://github.com/FoundatioFx/Foundatio.Sample/actions)
+[![Discord](https://img.shields.io/discord/715744504891703319?logo=discord&logoColor=fff&label=Discord)](https://discord.gg/6HxgFCx)
 
-A sample application that shows off some of the features of [Foundatio](https://github.com/exceptionless/Foundatio). For all of the examples below, please take a look at the JavaScript console (Press F12 now) for client side messages via [SignalR](http://www.asp.net/signalr).
+A real-world sample showing how to build, run, and **scale** distributed .NET applications with [Foundatio](https://github.com/FoundatioFx/Foundatio), [Foundatio.Mediator](https://github.com/FoundatioFx/Foundatio.Mediator), .NET 10, Aspire, and OpenTelemetry.
 
-By default this example will use the in memory versions of Foundatio. In memory versions do not scale across processes or persist information across application restarts. To scale out out this example, please uncomment the RedisConnectionString in the web.config and ensure [redis](http://redis.io/download) is installed.
+> **Start local with zero infrastructure, then scale to production by swapping a connection string.**
+>
+> Every Foundatio service (cache, queues, messaging, locking, storage) starts with an in-memory implementation. The [Insulation layer](#architecture--core--insulation--web) replaces them with Redis-backed versions automatically when a connection string is present — no code changes, no feature flags.
 
-# Examples
+## What This Sample Demonstrates
 
-To get started with the examples, please clone this repository and set the `Web` project as the startup project. Then press `F5` to start debugging!
+| Foundatio Feature | What It Does Here |
+| --- | --- |
+| **[Foundatio.Mediator](https://mediator.foundatio.dev)** | Convention-based handlers → auto-generated minimal API endpoints, SSE streaming, cascading events, middleware pipeline — zero boilerplate |
+| **Queues** | `IQueue<T>` for reliable async work dispatch — in-memory locally, Redis in production |
+| **Jobs** | `QueueJobBase<T>` for dedicated queue processors, `WorkItemJob` for shared work-item pools |
+| **Caching** | `ICacheClient` for read-through caching of processed values |
+| **File Storage** | `IFileStorage` for document persistence (in-memory or swap to S3/Azure/disk) |
+| **Messaging** | `IMessageBus` for pub/sub events across processes — powers SSE streaming and job coordination |
+| **Locking** | `ILockProvider` for distributed lock coordination backed by cache + message bus |
+| **Aspire** | Orchestrates Redis, the API, and a scaled-out job worker — dashboard shows traces, logs, metrics |
+| **OpenTelemetry** | ASP.NET Core, HTTP client, runtime metrics, and Foundatio activity sources export to OTLP |
+| **Health Checks** | `/health` for liveness, `/ready` for readiness with queue depth monitoring |
 
-## 1. Caching
+## Project Structure
 
-Attempt to get a guid from the cache. If the value is not cached the value will be populated after 5 seconds. This code makes a call to the `ValuesController` `Get` controller action
+```text
+src/
+├── Samples.Core/           # Domain logic — in-memory Foundatio defaults
+│   ├── Bootstrapper.cs     # Registers all services; runJobsInProcess flag
+│   ├── Handlers/            # Mediator handlers (auto-generate API routes)
+│   ├── Jobs/                # Background queue processor + work item handler
+│   ├── Messages/            # Command/query/stream message records
+│   ├── Models/              # Domain types and events
+│   └── Middleware/           # Mediator pipeline middleware
+├── Samples.Insulation/     # Production swaps — Redis for all the things
+│   └── Bootstrapper.cs     # Replace in-memory → Redis via DI Replace()
+├── Samples.Web/            # ASP.NET Core composition root
+│   ├── Program.cs          # Wires Core + Insulation + OTel + Mediator
+│   └── QueueHealthCheck.cs # Queue depth health check
+├── Samples.Jobs/           # Worker process — just background jobs
+│   └── Program.cs          # Same Core + Insulation, no HTTP
+└── Samples.AppHost/        # Aspire orchestration
+    └── Program.cs          # Redis + Web + Jobs(×3 replicas)
+```
 
-## 2. Jobs, Message Bus, Queues, Caching
-Posts a guid to the `ValuesController`, this will save a file to storage with a new guid and enqueue a work item to a dedicated job (`ValuesPostJob`). This job will then dequeue the item and read the guid from storage and parse it. If it can be parsed it will be persisted to the cache and publish a notification on the message bus.
+## Quick Start
 
-When you call Post Value you can then Get Value button to get the updated guid that was processed from the `ValuesPostJob`. Clicking this button multiple times will trigger the jobs to run multiple times and will also increment the metrics (visible from the debug window when running in memory versions).
+### Run standalone (zero dependencies)
 
-This example shows off how jobs, queues, and the message bus work together.
+```bash
+dotnet run --project src/Samples.Web
+```
 
-## 3. Shared Jobs, Message Bus, Queues, Caching
-Deletes an id from the cache by calling the `ValuesController` `Delete` controller action. Which enqueues a shared job work item (`DeleteValueWorkItemHandler`). Unlike dedicated jobs which are processing one job type, shared jobs can handle different job types and process them at anytime. This is great when you have long running tasks that don't happen very often, such as deleting an entity with many children.
+Everything runs in-process with in-memory services. Open <http://localhost:5210/scalar> for interactive API docs.
 
-The nice thing about shared jobs is that you can easily report the progress via the messagebus by calling the `context.ReportProgress(percent, message);`
+### Run with Aspire (recommended)
 
-Please note that if you are seeing duplicated messages reported to the console, this is because there are two instances of the shared jobs running. To fix this, you'll need to open the `DeleteValueWorkItemHandler` in the `Core` project and uncomment `GetWorkItemLock` to add locking to this job.
+```bash
+aspire run --project src/Samples.AppHost
+```
+
+Aspire provisions Redis, starts the API (jobs off-loaded), and spins up **3 job worker replicas** competing for queue work. Open the Aspire dashboard URL from the console to see distributed traces, structured logs, and metrics across all replicas.
+
+## API Endpoints
+
+Routes are auto-generated by Foundatio.Mediator from handler method conventions:
+
+| Method | Route | Handler | Description |
+| --- | --- | --- | --- |
+| `POST` | `/api/values` | `ValueHandler` | Store a value → file storage → enqueue for processing |
+| `GET` | `/api/values/{id}` | `ValueHandler` | Retrieve a processed value from cache |
+| `DELETE` | `/api/values/{id}` | `ValueHandler` | Enqueue a work item for background deletion |
+| `GET` | `/api/events` | `EventStreamHandler` | SSE stream of real-time `EntityChanged` events |
+| `GET` | `/health` | built-in | Liveness check |
+| `GET` | `/ready` | built-in | Readiness check (includes queue depth) |
+| `GET` | `/scalar` | Scalar | Interactive API documentation |
+
+## How It Works
+
+### Create a value — queues, jobs, caching, events
+
+```text
+POST /api/values { "value": "hello" }
+  → ValueHandler saves to IFileStorage, enqueues ValuesPost (carries Id + Value)
+  → Returns 201 Created + publishes EntityChanged via cascading tuple return
+  → ValuesPostJob (in worker) dequeues, caches value, publishes EntityChanged
+  → Cache now has the value; GET /api/values/{id} returns it
+  → EntityChangedHandler logs it; EventStreamHandler pushes it to SSE clients
+```
+
+### Delete a value — work items with progress
+
+```text
+DELETE /api/values/{id}
+  → ValueHandler enqueues DeleteValueWorkItem to IQueue<WorkItemData>
+  → WorkItemJob picks it up, runs DeleteValueWorkItemHandler
+  → Handler removes from cache, reports progress (0% → 50% → 100%)
+  → Publishes EntityChanged → SSE stream notifies clients
+```
+
+### Real-time events — SSE streaming
+
+Connect to `GET /api/events` from any HTTP client. The `EventStreamHandler` calls `mediator.SubscribeAsync<EntityChanged>()` which bridges the Foundatio `IMessageBus` into an `IAsyncEnumerable<T>` — Server-Sent Events with zero additional dependencies. Works across processes because the message bus is backed by Redis in production.
+
+## Architecture — Core / Insulation / Web
+
+This follows the [Exceptionless](https://github.com/exceptionless/Exceptionless) pattern:
+
+**Samples.Core** registers every Foundatio service with in-memory implementations. The entire app works out of the box:
+
+```csharp
+Samples.Core.Bootstrapper.RegisterServices(services, runJobsInProcess: true);
+```
+
+**Samples.Insulation** conditionally replaces registrations with Redis-backed implementations when a connection string is present:
+
+```csharp
+Samples.Insulation.Bootstrapper.RegisterServices(services, redisConnectionString);
+// Replaces: ICacheClient, IMessageBus, IQueue<ValuesPost>,
+//           IQueue<WorkItemData>, ILockProvider
+```
+
+**Samples.Web** is the HTTP composition root. **Samples.Jobs** is the headless worker. Both call the same two bootstrappers — the only difference is whether jobs run in-process.
+
+## Scaling Out
+
+The AppHost demonstrates real-world scale-out:
+
+```csharp
+// AppHost/Program.cs
+builder.AddProject<Projects.Samples_Web>("web")
+    .WithEnvironment("RunJobsInProcess", "false")   // API does NOT run jobs
+    .WithHttpHealthCheck("/health");
+
+builder.AddProject<Projects.Samples_Jobs>("jobs")
+    .WithReplicas(3);                                // 3 workers competing for queue items
+```
+
+Because Foundatio queues guarantee **at-most-once delivery**, multiple workers safely compete for items without duplicate processing. Need more throughput? Change `WithReplicas(3)` to `WithReplicas(10)` — that's it.
+
+This same pattern scales from a single process to multiple containers to Kubernetes pods.
+
+## Health Checks
+
+| Endpoint | Purpose | What It Checks |
+| --- | --- | --- |
+| `/health` | Liveness | Nothing — just confirms the process responds (no I/O) |
+| `/ready` | Readiness | Queue depth < 1000 (reports queued, working, deadletter, errors) |
+
+Liveness runs zero checks by design. A network call to Redis or any external dependency during liveness is wrong — if Redis is down the process is still alive and should not be restarted. Only readiness gates traffic.
+
+## Configuration
+
+```json
+{
+  "ConnectionStrings": {
+    "Redis": ""
+  },
+  "RunJobsInProcess": true,
+  "Sample": {
+    "AppName": "Foundatio Sample"
+  }
+}
+```
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `ConnectionStrings:Redis` | `""` (empty) | When empty, all services use in-memory. Set to a Redis URL to enable distributed mode. |
+| `RunJobsInProcess` | `true` | When `true`, background jobs run in the web process. Set to `false` when using separate `Samples.Jobs` workers. |
+| `Sample:AppName` | `"Foundatio Sample"` | Service name for OpenTelemetry resource tags. |
+
+When running via Aspire, Redis is provisioned automatically, `RunJobsInProcess` is set to `false`, and connection strings are injected via service discovery.
+
+## Links
+
+- [Foundatio](https://github.com/FoundatioFx/Foundatio) — Pluggable foundation blocks for building distributed apps
+- [Foundatio.Mediator](https://github.com/FoundatioFx/Foundatio.Mediator) — Source-generated mediator with auto API endpoints
+- [Foundatio.Mediator Docs](https://mediator.foundatio.dev) — Complete documentation
+- [Exceptionless](https://github.com/exceptionless/Exceptionless) — Real-world app built on Foundatio at scale
+- [Discord](https://discord.gg/6HxgFCx) — Community chat
