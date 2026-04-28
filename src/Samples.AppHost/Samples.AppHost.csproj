@@ -1,0 +1,18 @@
+﻿<Project Sdk="Aspire.AppHost.Sdk/13.2.4">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>d5a759f0-ec9e-4c50-9e78-4bf0784bcb6d</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.Redis" Version="13.2.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Samples.Web\Samples.Web.csproj" />
+    <ProjectReference Include="..\Samples.Jobs\Samples.Jobs.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="global.json" />
+    <File Path="NuGet.config" />
+    <File Path="README.md" />
+    <File Path="src/Directory.Build.props" />
+  </Folder>
+  <Project Path="src/Samples.Core/Samples.Core.csproj" />
+  <Project Path="src/Samples.Insulation/Samples.Insulation.csproj" />
+  <Project Path="src/Samples.Web/Samples.Web.csproj" />
+  <Project Path="src/Samples.Jobs/Samples.Jobs.csproj" />
+  <Project Path="src/Samples.AppHost/Samples.AppHost.csproj" />
+</Solution>
