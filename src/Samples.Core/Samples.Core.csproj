@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Foundatio" Version="13.0.0" />
+    <PackageReference Include="Foundatio.Extensions.Hosting" Version="13.0.0" />
+    <PackageReference Include="Foundatio.Mediator" Version="1.0.1" />
+  </ItemGroup>
+
+</Project>
