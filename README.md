@@ -59,7 +59,7 @@ Everything runs in-process with in-memory services. Open <http://localhost:5210/
 ### Run with Aspire (recommended)
 
 ```bash
-aspire run --project src/Samples.AppHost
+aspire run
 ```
 
 Aspire provisions Redis, starts the API (jobs off-loaded), and spins up **3 job worker replicas** competing for queue work. Open the Aspire dashboard URL from the console to see distributed traces, structured logs, and metrics across all replicas.
